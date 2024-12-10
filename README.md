@@ -28,13 +28,7 @@ This script requires the following Python libraries:
 
 Before running the script, make sure to:
 
-1. Install the necessary Python libraries by running:
-
-    ```bash
-    pip install -r requirements.txt
-    ```
-
-2. Set up the environment variable for OpenAI API access. Create a `.env` file in the same directory as the script and add your `AIPROXY_TOKEN`:
+1. Set up the environment variable for OpenAI API access. Create a `.env` file in the same directory as the script and add your `AIPROXY_TOKEN`:
 
     ```
     AIPROXY_TOKEN=your_api_token_here
@@ -47,7 +41,7 @@ Before running the script, make sure to:
 To run the script, use the following command:
 
 ```bash
-python autolysis.py <dataset.csv>
+uv run autolysis.py <dataset.csv>
 ```
 
 Where `<dataset.csv>` is the path to the CSV file you want to analyze.
@@ -66,7 +60,7 @@ Where `<dataset.csv>` is the path to the CSV file you want to analyze.
 Running the script on a sample dataset:
 
 ```bash
-python autolysis.py sample_data.csv
+uv autolysis.py sample_data.csv
 ```
 
 After running the script, a `README.md` file will be generated in the folder named `sample_data`. This markdown file will contain:
@@ -87,7 +81,3 @@ After running the script, a `README.md` file will be generated in the folder nam
 ## License
 
 This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
-
----
-
-This README provides an overview of the project and instructions on how to use the script, ensuring that users can easily understand how to execute the analysis and interpret the results.

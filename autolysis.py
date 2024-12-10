@@ -396,7 +396,7 @@ def analyze_data(file_path):
         try:
             output_dir = os.path.join(CONFIG["OUTPUT_DIR"], file_name)
             os.makedirs(output_dir, exist_ok=True)  # Ensure the directory exists
-            output_file = os.path.join(output_dir, "readme.md")
+            output_file = os.path.join(output_dir, "README.md")
 
             with open(output_file, "w") as file:
                 file.write(markdown_content)

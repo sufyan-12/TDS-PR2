@@ -1,7 +1,3 @@
-Here's a detailed README for your project:
-
----
-
 # Data Analysis and Visualization Tool
 
 This Python script allows for in-depth analysis and visualization of CSV datasets. It integrates OpenAI's GPT-4 for intelligent insights, generates various types of plots, and produces a comprehensive report in markdown format. The analysis includes descriptive statistics, missing value analysis, outlier detection, and clustering, with results saved in an easily accessible directory.

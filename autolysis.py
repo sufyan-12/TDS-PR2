@@ -99,9 +99,10 @@ def calculate_missing_values(df, **kwargs):
 def save_plot_to_file(plot_name, plt_obj):
     """Save the plot to the file_name/plot_name.png directory."""
     try:
-        output_dir = os.path.join(CONFIG["OUTPUT_DIR"], PLOT_CONST['file_name'])
-        os.makedirs(output_dir, exist_ok=True)  # Ensure the directory exists
-        plot_path = os.path.join(output_dir, f"{plot_name}.png")
+        #output_dir = os.path.join(CONFIG["OUTPUT_DIR"], PLOT_CONST['file_name'])
+        #os.makedirs(output_dir, exist_ok=True)  # Ensure the directory exists
+        #plot_path = os.path.join(output_dir, f"{plot_name}.png")
+        plot_path = os.path.join(CONFIG["OUTPUT_DIR"], f"{plot_name}.png")
         
         # Save the plot
         plt_obj.savefig(plot_path, bbox_inches="tight")
@@ -394,9 +395,10 @@ def analyze_data(file_path):
 
         # Step 6: Save to Markdown file
         try:
-            output_dir = os.path.join(CONFIG["OUTPUT_DIR"], file_name)
-            os.makedirs(output_dir, exist_ok=True)  # Ensure the directory exists
-            output_file = os.path.join(output_dir, "README.md")
+            #output_dir = os.path.join(CONFIG["OUTPUT_DIR"], file_name)
+            #os.makedirs(output_dir, exist_ok=True)  # Ensure the directory exists
+            #output_file = os.path.join(output_dir, "README.md")
+            output_file = os.path.join(CONFIG['OUTPUT_DIR'], "README.md")
 
             with open(output_file, "w") as file:
                 file.write(markdown_content)

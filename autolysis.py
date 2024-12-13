@@ -34,20 +34,24 @@ CONFIG = {
 
 AIPROXY_TOKEN = os.getenv("AIPROXY_TOKEN")
 
-
 HEADERS = {
     "Authorization": f"Bearer {AIPROXY_TOKEN}",
     "Content-Type": "application/json",
 }
 
-PLOT_CONST = {
-    'df':  None,
-    'file_name': ''
-}
-
 
 # Function to call OpenAI API
-def ask_openai(messages, functions=None):
+def ask_openai(messages: list[dict], functions: list[dict] | None = None) -> dict:
+    """
+    Communicate with the OpenAI API using provided messages and functions.
+
+    Args:
+        messages (list[dict]): List of messages for the OpenAI API.
+        functions (list[dict] | None): Optional list of function definitions.
+
+    Returns:
+        dict: Response from the OpenAI API or an error message.
+    """
     payload = {
         "model": "gpt-4o-mini",
         "messages": messages,
@@ -61,50 +65,62 @@ def ask_openai(messages, functions=None):
         return response.json()
     except requests.exceptions.RequestException as e:
         print(f"Error communicating with OpenAI API: {e}")
-        return response
+        return {"error": str(e)}
 
 # Function to describe the dataset
-def describe_dataset(df):
-    try:
-        # Get the descriptive statistics
-        description = df.describe(include="all").to_string()
+def describe_dataset(df: pd.DataFrame) -> tuple[str, str]:
+    """
+    Generate descriptive statistics and dataset information.
 
-        # Capture the output of df.info()
+    Args:
+        df (pd.DataFrame): The dataset to describe.
+
+    Returns:
+        tuple:
+            - description (str): Descriptive statistics of the dataset.
+            - info (str): Detailed dataset structure and data types.
+    """
+    try:
+        description = df.describe(include="all").to_string()
         info_buf = StringIO()
         df.info(buf=info_buf)
         info = info_buf.getvalue()
         return description, info
-
     except Exception as e:
-        # Handle unexpected errors and return meaningful error message
-        error_message = f"Error describing dataset: {str(e)}"
-        print(error_message)
-        return {"error": error_message}, None
+        print(f"Error describing dataset: {e}")
+        return "Error in description", str(e)
 
 # Function to calculate missing values
-def calculate_missing_values(df, **kwargs):
+def calculate_missing_values(df: pd.DataFrame) -> dict:
+    """
+    Calculate the number of missing values for each column in the dataset.
+
+    Args:
+        df (pd.DataFrame): The dataset.
+
+    Returns:
+        dict: Dictionary of missing values count for each column.
+    """
     try:
-        # Calculate missing values for each column
-        missing_values = df.isna().sum()
-
-        # Convert to dictionary for better JSON compatibility
-        return missing_values.to_dict()
-
+        return df.isna().sum().to_dict()
     except Exception as e:
-        # Handle unexpected errors and return meaningful error message
-        error_message = f"Error calculating missing values: {str(e)}"
-        print(error_message)
-        return {"error": error_message}
+        print(f"Error calculating missing values: {e}")
+        return {"error": str(e)}
+
 # Function to save plots to file
-def save_plot_to_file(plot_name, plt_obj):
-    """Save the plot to the file_name/plot_name.png directory."""
+def save_plot_to_file(plot_name: str, plt_obj: plt) -> str:
+    """
+    Save the given plot object to a file.
+
+    Args:
+        plot_name (str): The name of the plot file.
+        plt_obj (plt): The Matplotlib plot object.
+
+    Returns:
+        str: Path to the saved plot.
+    """
     try:
-        #output_dir = os.path.join(CONFIG["OUTPUT_DIR"], PLOT_CONST['file_name'])
-        #os.makedirs(output_dir, exist_ok=True)  # Ensure the directory exists
-        #plot_path = os.path.join(output_dir, f"{plot_name}.png")
         plot_path = os.path.join(CONFIG["OUTPUT_DIR"], f"{plot_name}.png")
-        
-        # Save the plot
         plt_obj.savefig(plot_path, bbox_inches="tight")
         return f"./{plot_name}.png"
     except Exception as e:
@@ -112,88 +128,57 @@ def save_plot_to_file(plot_name, plt_obj):
     finally:
         plt_obj.close()
 
-# Function to generate correlation heatmap plot
-def generate_correlation_heatmap(df=PLOT_CONST['df'], file_name=PLOT_CONST['file_name'], plot_name="correlation_heatmap"):
-    """Generate and save a correlation heatmap plot for numerical columns only."""
+# Function to generate correlation heatmap
+def generate_correlation_heatmap(df: pd.DataFrame, plot_name="correlation_heatmap") -> str:
+    """
+    Generate and save a correlation heatmap for numerical columns in the dataset.
+
+    Args:
+        df (pd.DataFrame): Dataset to analyze.
+        plot_name (str, optional): Name of the plot file. Defaults to "correlation_heatmap".
+
+    Returns:
+        str: Path to the saved plot.
+    """
     try:
-        # Select only numerical columns
         numerical_df = df.select_dtypes(include=["number"])
-        
-        # Check if there are any numerical columns
         if numerical_df.empty:
-            print("No numerical columns found in the dataset to generate a correlation heatmap.")
-            return None
-        
-        # Calculate the correlation matrix
+            return "No numerical columns found to generate correlation heatmap."
+
         correlation_matrix = numerical_df.corr()
-        
-        # Generate the heatmap
         plt.figure(figsize=(10, 8))
-        heatmap = sns.heatmap(
-            correlation_matrix, annot=True, fmt=".2f", cmap="coolwarm", cbar=True
-        )
+        sns.heatmap(correlation_matrix, annot=True, fmt=".2f", cmap="coolwarm", cbar=True)
         plt.title("Correlation Heatmap")
-        
-        # Save the plot
-        plot_path = save_plot_to_file(plot_name, plt)
-        return f"plot generated and saved at {plot_path}, use this path in the mardown file"
+        path = save_plot_to_file(plot_name, plt)
+        return f"plot Saved to path : {path}"
     except Exception as e:
         print(f"Error generating correlation heatmap: {e}")
-        return "Plot could not be generated"
-   
-# Function to generate box plot for outlier analysis
-def generate_box_plot(df=PLOT_CONST['df'], file_name=PLOT_CONST['file_name'], plot_name="box_plot", columns=None):
-    """Generate and save box plots for outlier analysis, either for specified columns or all numeric columns."""
-    try:
-        # If columns are specified, use them; otherwise, use all numeric columns
-        if columns:
-            df = df[columns]
-        else:
-            df = df.select_dtypes(include=["number"])  # Select numeric columns
+        return "Plot could not be generated."
 
+# Function to generate a box plot
+def generate_box_plot(df: pd.DataFrame, plot_name="box_plot", columns: list[str] | None = None) -> str:
+    """
+    Generate and save a box plot for outlier analysis.
+
+    Args:
+        df (pd.DataFrame): Dataset to analyze.
+        plot_name (str, optional): Name of the plot file. Defaults to "box_plot".
+        columns (list[str] | None, optional): Specific columns to include. Defaults to None (all numeric columns).
+
+    Returns:
+        str: Path to the saved plot.
+    """
+    try:
+        data = df[columns] if columns else df.select_dtypes(include=["number"])
         plt.figure(figsize=(12, 6))
-        sns.boxplot(data=df, orient="h", palette="Set2")
+        sns.boxplot(data=data, orient="h", palette="Set2")
         plt.title("Box Plot for Outlier Analysis")
-        plot_path = save_plot_to_file(plot_name, plt)
-        return f"plot generated and saved at {plot_path}, use this path in the mardown file"
+        path = save_plot_to_file(plot_name, plt)
+        return f"plot Saved to path : {path}"
     except Exception as e:
-        print(f"Error generating correlation heatmap: {e}")
-        return "Plot could not be generated"
+        print(f"Error generating box plot: {e}")
+        return "Plot could not be generated."
 
-# Function to generate cluster analysis plot
-def generate_cluster_plot(df=PLOT_CONST['df'], file_name=PLOT_CONST['file_name'], plot_name="cluster_analysis", n_clusters=3):
-    """Generate and save a cluster analysis plot using PCA for visualization."""
-    try:
-        # Remove non-numeric data
-        numeric_df = df.select_dtypes(include=["number"]).dropna()
-
-        # Apply KMeans clustering
-        kmeans = KMeans(n_clusters=n_clusters, random_state=42)
-        kmeans.fit(numeric_df)
-        labels = kmeans.labels_
-
-        # Use PCA to reduce to 2D for visualization
-        pca = PCA(n_components=2)
-        pca_result = pca.fit_transform(numeric_df)
-
-        # Create a scatter plot
-        plt.figure(figsize=(10, 8))
-        scatter = sns.scatterplot(
-            x=pca_result[:, 0],
-            y=pca_result[:, 1],
-            hue=labels,
-            palette="Set2",
-            legend="full"
-        )
-        plt.title(f"Cluster Analysis (n_clusters={n_clusters})")
-        plt.xlabel("PCA Component 1")
-        plt.ylabel("PCA Component 2")
-        plot_path = save_plot_to_file(plot_name, plt)
-        return f"plot generated and saved at {plot_path}, use this path in the mardown file"
-    except Exception as e:
-        print(f"Error generating correlation heatmap: {e}")
-        return "Plot could not be generated"
-    
 # Analyze the dataset and interact with OpenAI
 def analyze_data(file_path):
     try:
@@ -208,9 +193,6 @@ def analyze_data(file_path):
 
             # Read the CSV file with the detected encoding
             df = pd.read_csv(file_path, encoding=encoding)
-            global PLOT_CONST
-            PLOT_CONST['df'] = df
-            PLOT_CONST['file_name'] = file_name
 
             print("File read successfully!")
         except Exception as e:
@@ -225,6 +207,7 @@ def analyze_data(file_path):
             prompt = f"""
             Here is a summary of the dataset:
             File name: {file_name}
+            Data Frame Varible name: df
 
             **Description:**
             {description}
@@ -260,56 +243,59 @@ def analyze_data(file_path):
             functions = [
                 {
                     "name": "calculate_missing_values",
-                    "description": "Calculate the number of missing values for each column in the dataset.",
-                    "parameters": {"type": "object", "properties": {}},
+                    "description": "Calculate the number of missing values for each column in the dataset. This helps identify columns with incomplete data that may need cleaning or preprocessing.",
+                    "parameters": {
+                        "type": "object",
+                        "properties": {
+                            "df": {
+                                "type": "object",
+                                "description": "The DataFrame object containing the dataset.",
+                            },
+                        },
+                        "required": ["df"],
+                    },
                 },
                 {
                     "name": "generate_correlation_heatmap",
-                    "description": "Generate and save a correlation heatmap plot for the dataset. This function creates a heatmap of the correlation matrix of numeric columns in the dataset.",
+                    "description": "Generate and save a correlation heatmap plot for the dataset. This function creates a visual representation of the correlation matrix for numeric columns in the dataset, highlighting relationships between variables.",
                     "parameters": {
                         "type": "object",
-                         "properties": {}
-                    }
+                        "properties": {
+                            "df": {
+                                "type": "object",
+                                "description": "The DataFrame object containing the dataset.",
+                            },
+                        },
+                        "required": ["df"],
+                    },
                 },
                 {
                     "name": "generate_box_plot",
-                    "description": "Generate and save a box plot for outlier analysis. This function can analyze specific columns or all numeric columns in the dataset.",
+                    "description": "Generate and save a box plot for outlier analysis. This function can analyze specific columns or all numeric columns in the dataset to identify potential outliers.",
                     "parameters": {
                         "type": "object",
                         "properties": {
+                            "df": {
+                                "type": "object",
+                                "description": "The DataFrame object containing the dataset.",
+                            },
                             "columns": {
                                 "type": "array",
                                 "items": {"type": "string"},
-                                "description": "Specific columns to include in the box plot. If not provided, all numeric columns will be used.",
+                                "description": "A list of specific columns to include in the box plot. If not provided, the function will default to analyzing all numeric columns.",
                             },
                         },
-                        "required": ["columns"],
-                    },
-                },
-                {
-                    "name": "generate_cluster_plot",
-                    "description": "Generate and save a cluster analysis plot using PCA for visualization. The dataset is clustered using KMeans, and PCA is applied to reduce dimensions for plotting.",
-                    "parameters": {
-                        "type": "object",
-                        "properties": {
-                            "n_clusters": {
-                                "type": "integer",
-                                "default": 3,
-                                "minimum": 2,
-                                "maximum": 10,
-                                "description": "Number of clusters for KMeans clustering.",
-                            },
-                        }
+                        "required": ["df"],
                     },
                 },
             ]
+
 
             # Available functions dictionary for OpenAI interaction
             available_functions = {
                 "calculate_missing_values": calculate_missing_values,
                 "generate_correlation_heatmap": generate_correlation_heatmap,
-                "generate_box_plot": generate_box_plot,
-                "generate_cluster_plot": generate_cluster_plot,
+                "generate_box_plot": generate_box_plot
             }
             print("Initial prompt generated successfully!")
         except Exception as e:
@@ -334,6 +320,7 @@ def analyze_data(file_path):
                     try:
                         # Parse arguments string into a dictionary
                         function_args = json.loads(function_args)
+                        print(function_args)
                     except json.JSONDecodeError:
                         print(f"Error decoding function arguments: {function_args}")
                         function_args = {}
@@ -395,9 +382,6 @@ def analyze_data(file_path):
 
         # Step 6: Save to Markdown file
         try:
-            #output_dir = os.path.join(CONFIG["OUTPUT_DIR"], file_name)
-            #os.makedirs(output_dir, exist_ok=True)  # Ensure the directory exists
-            #output_file = os.path.join(output_dir, "README.md")
             output_file = os.path.join(CONFIG['OUTPUT_DIR'], "README.md")
 
             with open(output_file, "w") as file:

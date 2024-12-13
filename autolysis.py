@@ -141,16 +141,29 @@ def generate_correlation_heatmap(df: pd.DataFrame, plot_name="correlation_heatma
         str: Path to the saved plot.
     """
     try:
+        # Select numerical columns only
         numerical_df = df.select_dtypes(include=["number"])
         if numerical_df.empty:
             return "No numerical columns found to generate correlation heatmap."
 
+        # Calculate the correlation matrix
         correlation_matrix = numerical_df.corr()
+
+        # Plot the heatmap
         plt.figure(figsize=(10, 8))
-        sns.heatmap(correlation_matrix, annot=True, fmt=".2f", cmap="coolwarm", cbar=True)
-        plt.title("Correlation Heatmap")
+        sns.heatmap(
+            correlation_matrix, annot=True, fmt=".2f", cmap="coolwarm", cbar=True,
+            linewidths=0.5, linecolor='black', vmin=-1, vmax=1
+        )
+        plt.title("Correlation Heatmap", fontsize=16)
+        plt.xlabel("Features", fontsize=12)
+        plt.ylabel("Features", fontsize=12)
+        plt.xticks(rotation=45, ha="right")
+        plt.yticks(rotation=45, va="top")
+
+        # Save the plot
         path = save_plot_to_file(plot_name, plt)
-        return f"plot Saved to path : {path}"
+        return f"Plot saved to path: {path}"
     except Exception as e:
         print(f"Error generating correlation heatmap: {e}")
         return "Plot could not be generated."
@@ -169,12 +182,20 @@ def generate_box_plot(df: pd.DataFrame, plot_name="box_plot", columns: list[str]
         str: Path to the saved plot.
     """
     try:
+        # Select the specified columns or all numeric columns
         data = df[columns] if columns else df.select_dtypes(include=["number"])
+
+        # Plot the box plot
         plt.figure(figsize=(12, 6))
         sns.boxplot(data=data, orient="h", palette="Set2")
-        plt.title("Box Plot for Outlier Analysis")
+        plt.title("Box Plot for Outlier Analysis", fontsize=16)
+        plt.xlabel("Values", fontsize=12)
+        plt.ylabel("Features", fontsize=12)
+        plt.xticks(fontsize=10)
+        plt.yticks(fontsize=10)
         path = save_plot_to_file(plot_name, plt)
-        return f"plot Saved to path : {path}"
+
+        return f"Plot saved to path: {path}"
     except Exception as e:
         print(f"Error generating box plot: {e}")
         return "Plot could not be generated."

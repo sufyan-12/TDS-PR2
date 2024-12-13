@@ -364,7 +364,7 @@ def analyze_data(file_path):
             1. You must call functions to generate plots and include them in the analysis.
             2. Your final response should be in markdown format with plots linked, and the analysis should flow logically and engage the user.
             3. Be sure to explain your thought process in a narrative, as if telling a story, and break down your analysis clearly.
-            4. There are may plotting functions available to you, make sure you use then as per the need of analysis.
+            4. There are may plotting functions available to you, make sure you use then as per the need of analysis and also add explanatory comments to the plots.
             """ 
 
             # Step 2: Initial prompt to OpenAI

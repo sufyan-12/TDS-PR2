@@ -52,20 +52,26 @@ def ask_openai(messages: list[dict], functions: list[dict] | None = None) -> dic
     Returns:
         dict: Response from the OpenAI API or an error message.
     """
+    # Create the payload to send to the OpenAI API
     payload = {
-        "model": "gpt-4o-mini",
-        "messages": messages,
+        "model": "gpt-4o-mini",  # Specify the model to use for the API request
+        "messages": messages,    # Pass the list of messages for the conversation
     }
+    
+    # If functions are provided, include them in the payload
     if functions:
         payload["functions"] = functions
 
     try:
+        # Send the request to the OpenAI API
         response = requests.post(CONFIG["OPENAI_API_URL"], headers=HEADERS, json=payload)
-        response.raise_for_status()
-        return response.json()
+        response.raise_for_status()  # Raise an exception for any HTTP errors
+        return response.json()  # Return the response from the API as a JSON object
     except requests.exceptions.RequestException as e:
+        # Handle errors during the API request
         print(f"Error communicating with OpenAI API: {e}")
-        return {"error": str(e)}
+        return {"error": str(e)}  # Return the error as a dictionary
+
 
 # Function to describe the dataset
 def describe_dataset(df: pd.DataFrame) -> tuple[str, str]:
@@ -81,14 +87,20 @@ def describe_dataset(df: pd.DataFrame) -> tuple[str, str]:
             - info (str): Detailed dataset structure and data types.
     """
     try:
+        # Generate descriptive statistics for all columns in the dataset
         description = df.describe(include="all").to_string()
-        info_buf = StringIO()
-        df.info(buf=info_buf)
-        info = info_buf.getvalue()
-        return description, info
+
+        # Capture detailed information about the DataFrame (e.g., data types, non-null counts)
+        info_buf = StringIO()  # Buffer to hold the info string
+        df.info(buf=info_buf)  # Store DataFrame info into the buffer
+        info = info_buf.getvalue()  # Retrieve the string from the buffer
+
+        return description, info  # Return both descriptions and DataFrame info
     except Exception as e:
+        # Handle any errors encountered during the description process
         print(f"Error describing dataset: {e}")
-        return "Error in description", str(e)
+        return "Error in description", str(e)  # Return an error message
+
 
 # Function to calculate missing values
 def calculate_missing_values(df: pd.DataFrame) -> dict:
@@ -102,10 +114,13 @@ def calculate_missing_values(df: pd.DataFrame) -> dict:
         dict: Dictionary of missing values count for each column.
     """
     try:
+        # Calculate the number of missing values (NaN) in each column
         return df.isna().sum().to_dict()
     except Exception as e:
+        # Handle any errors encountered during the calculation
         print(f"Error calculating missing values: {e}")
-        return {"error": str(e)}
+        return {"error": str(e)}  # Return the error as a dictionary
+
 
 # Function to save plots to file
 def save_plot_to_file(plot_name: str, plt_obj: plt) -> str:
@@ -120,15 +135,22 @@ def save_plot_to_file(plot_name: str, plt_obj: plt) -> str:
         str: Path to the saved plot.
     """
     try:
+        # Define the full path to save the plot (using OUTPUT_DIR from the config)
         plot_path = os.path.join(CONFIG["OUTPUT_DIR"], f"{plot_name}.png")
+
+        # Save the plot as a PNG file with tight bounding box to avoid clipping
         plt_obj.savefig(plot_path, bbox_inches="tight")
+        
+        # Return the relative path of the saved plot
         return f"./{plot_name}.png"
     except Exception as e:
+        # Handle any errors encountered while saving the plot
         print(f"Error saving plot: {e}")
     finally:
+        # Ensure that the plot is closed after saving
         plt_obj.close()
 
-# Function to generate correlation heatmap
+# Function to generate a correlation heatmap
 def generate_correlation_heatmap(df: pd.DataFrame, plot_name="correlation_heatmap") -> str:
     """
     Generate and save a correlation heatmap for numerical columns in the dataset.
@@ -169,14 +191,14 @@ def generate_correlation_heatmap(df: pd.DataFrame, plot_name="correlation_heatma
         return "Plot could not be generated."
 
 # Function to generate a box plot
-def generate_box_plot(df: pd.DataFrame, plot_name="box_plot", columns: list[str] | None = None) -> str:
+def generate_box_plot(df: pd.DataFrame , columns: str, plot_name="box_plot") -> str:
     """
     Generate and save a box plot for outlier analysis.
 
     Args:
         df (pd.DataFrame): Dataset to analyze.
         plot_name (str, optional): Name of the plot file. Defaults to "box_plot".
-        columns (list[str] | None, optional): Specific columns to include. Defaults to None (all numeric columns).
+        columns (str):  columns to include.
 
     Returns:
         str: Path to the saved plot.
@@ -187,17 +209,92 @@ def generate_box_plot(df: pd.DataFrame, plot_name="box_plot", columns: list[str]
 
         # Plot the box plot
         plt.figure(figsize=(12, 6))
-        sns.boxplot(data=data, orient="h", palette="Set2")
-        plt.title("Box Plot for Outlier Analysis", fontsize=16)
+        sns.boxplot(data=data, orient="h")
+        plt.title(f"Box Plot for {columns}", fontsize=16)
         plt.xlabel("Values", fontsize=12)
         plt.ylabel("Features", fontsize=12)
         plt.xticks(fontsize=10)
         plt.yticks(fontsize=10)
+        plt.legend(["Box Plot"], loc="upper right")  # Added legend
+
+        # Save the plot
         path = save_plot_to_file(plot_name, plt)
 
         return f"Plot saved to path: {path}"
     except Exception as e:
         print(f"Error generating box plot: {e}")
+        return "Plot could not be generated."
+
+# Function to generate a bar plot
+def generate_bar_plot(df: pd.DataFrame, columns: str, plot_name="bar_plot") -> str:
+    """
+    Generate and save a bar plot for categorical data analysis.
+
+    Args:
+        df (pd.DataFrame): Dataset to analyze.
+        plot_name (str, optional): Name of the plot file. Defaults to "bar_plot".
+        columns (str): Specific categorical column to include.
+
+    Returns:
+        str: Path to the saved plot.
+    """
+    try:
+        # Select the specified columns or all categorical columns
+        data = df[columns] if columns else df.select_dtypes(include=["object"])
+
+        # Plot the bar plot
+        plt.figure(figsize=(12, 6))
+        data_count = data.value_counts()
+        bar_plot = data_count.plot(kind="bar", stacked=True, figsize=(10, 8))
+
+        plt.title("Bar Plot for Categorical Data", fontsize=16)
+        plt.xlabel("Categories", fontsize=12)
+        plt.ylabel("Count", fontsize=12)
+        plt.xticks(rotation=45, ha="right", fontsize=10)
+        plt.yticks(fontsize=10)
+
+        # Add legend for the bar plot
+        bar_plot.legend(title="Category Values", loc="upper left", bbox_to_anchor=(1, 1))
+
+        # Save the plot
+        path = save_plot_to_file(plot_name, plt)
+        return f"Plot saved to path: {path}"
+    except Exception as e:
+        print(f"Error generating bar plot: {e}")
+        return "Plot could not be generated."
+
+# Function to generate a scatter plot
+def generate_scatter_plot(df: pd.DataFrame, x_column: str, y_column: str, plot_name="scatter_plot") -> str:
+    """
+    Generate and save a scatter plot for numerical data analysis between two variables.
+
+    Args:
+        df (pd.DataFrame): Dataset to analyze.
+        plot_name (str, optional): Name of the plot file. Defaults to "scatter_plot".
+        x_column (str): Column name for the x-axis.
+        y_column (str): Column name for the y-axis.
+
+    Returns:
+        str: Path to the saved plot.
+    """
+    try:
+        # Plot the scatter plot
+        plt.figure(figsize=(10, 6))
+        scatter_plot = sns.scatterplot(data=df, x=x_column, y=y_column, color='blue', marker='o', label="Data Points")
+        plt.title(f"Scatter Plot between {x_column} and {y_column}", fontsize=16)
+        plt.xlabel(x_column, fontsize=12)
+        plt.ylabel(y_column, fontsize=12)
+        plt.xticks(fontsize=10)
+        plt.yticks(fontsize=10)
+
+        # Add legend for the scatter plot
+        scatter_plot.legend(title="Points", loc="upper right")
+
+        # Save the plot
+        path = save_plot_to_file(plot_name, plt)
+        return f"Plot saved to path: {path}"
+    except Exception as e:
+        print(f"Error generating scatter plot: {e}")
         return "Plot could not be generated."
 
 # Analyze the dataset and interact with OpenAI
@@ -237,23 +334,23 @@ def analyze_data(file_path):
             {info}
 
             Provide insights about the dataset. You can call the appropriate functions for analysis. 
-            Make sure your analysis includes the following:
+            Your analysis must include:
             1. General description of the dataset.
             2. Descriptive statistics of the dataset.
             3. Missing values in the dataset.
-            4. At least 2 plots.
+            4. Plots Related to the dataset.
             5. Potential next steps for analysis.
 
             **Instructions:**
-            2. You must call functions to generate plots, such as correlation heatmap and box plot and include them in the analysis.
-            3. Your final response should be in markdown format with plots linked, and the analysis should flow logically and engage the user.
-            5. Be sure to explain your thought process in a narrative, as if telling a story, and break down your analysis clearly.
-
+            1. You must call functions to generate plots and include them in the analysis.
+            2. Your final response should be in markdown format with plots linked, and the analysis should flow logically and engage the user.
+            3. Be sure to explain your thought process in a narrative, as if telling a story, and break down your analysis clearly.
+            4. There are may plotting functions available to you, make sure you use then as per the need of analysis.
             """ 
 
             # Step 2: Initial prompt to OpenAI
             messages = [
-                {"role": "system", "content": "You are a data analysis assistant."},
+                {"role": "system", "content": "You are a data analysis assistant agent, you have your own function calling capablities. use them to generate the analysis by returning a function call in response."},
                 {
                     "role": "user",
                     "content": prompt,
@@ -278,7 +375,7 @@ def analyze_data(file_path):
                 },
                 {
                     "name": "generate_correlation_heatmap",
-                    "description": "Generate and save a correlation heatmap plot for the dataset. This function creates a visual representation of the correlation matrix for numeric columns in the dataset, highlighting relationships between variables.",
+                    "description": "Generate and save a correlation heatmap plot for the dataset. This function creates a visual representation of the correlation matrix for numeric columns in the dataset, highlighting relationships between variables. The plot includes annotations for correlation coefficients, axis labels, and a color bar.",
                     "parameters": {
                         "type": "object",
                         "properties": {
@@ -286,13 +383,17 @@ def analyze_data(file_path):
                                 "type": "object",
                                 "description": "The DataFrame object containing the dataset.",
                             },
+                            "plot_name": {
+                                "type": "string",
+                                "description": "The name of the saved plot file. Defaults to 'correlation_heatmap'.",
+                            },
                         },
                         "required": ["df"],
                     },
                 },
                 {
                     "name": "generate_box_plot",
-                    "description": "Generate and save a box plot for outlier analysis. This function can analyze specific columns or all numeric columns in the dataset to identify potential outliers.",
+                    "description": "Generate and save a box plot for outlier analysis. This function can analyze specific columns or all numeric columns in the dataset to identify potential outliers. The plot includes axis labels and annotations for better clarity, and a legend indicating the analysis type.",
                     "parameters": {
                         "type": "object",
                         "properties": {
@@ -301,22 +402,74 @@ def analyze_data(file_path):
                                 "description": "The DataFrame object containing the dataset.",
                             },
                             "columns": {
-                                "type": "array",
-                                "items": {"type": "string"},
-                                "description": "A list of specific columns to include in the box plot. If not provided, the function will default to analyzing all numeric columns.",
+                                "type": "string",
+                                "description": "A specific columns to include in the box plot.",
+                            },
+                            "plot_name": {
+                                "type": "string",
+                                "description": "The name of the saved plot file. Defaults to 'box_plot'.",
                             },
                         },
-                        "required": ["df"],
+                        "required": ["df","columns"],
+                    },
+                },
+                {
+                    "name": "generate_bar_plot",
+                    "description": "Generate and save a bar plot for categorical data analysis. This function creates a bar plot to visualize the count of each category in the dataset, and includes legends for category values. The plot allows for easy comparison between different categories in the dataset.",
+                    "parameters": {
+                        "type": "object",
+                        "properties": {
+                            "df": {
+                                "type": "object",
+                                "description": "The DataFrame object containing the dataset.",
+                            },
+                            "columns": {
+                                "type": "string",
+                                "description": "A specific categorical columns to include.",
+                            },
+                            "plot_name": {
+                                "type": "string",
+                                "description": "The name of the saved plot file. Defaults to 'bar_plot'.",
+                            },
+                        },
+                        "required": ["df","columns"],
+                    },
+                },
+                {
+                    "name": "generate_scatter_plot",
+                    "description": "Generate and save a scatter plot to analyze the relationship between two numerical columns in the dataset. The plot includes a legend for data points and annotations for better understanding.",
+                    "parameters": {
+                        "type": "object",
+                        "properties": {
+                            "df": {
+                                "type": "object",
+                                "description": "The DataFrame object containing the dataset.",
+                            },
+                            "x_column": {
+                                "type": "string",
+                                "description": "The column name for the x-axis.",
+                            },
+                            "y_column": {
+                                "type": "string",
+                                "description": "The column name for the y-axis.",
+                            },
+                            "plot_name": {
+                                "type": "string",
+                                "description": "The name of the saved plot file. Defaults to 'scatter_plot'.",
+                            },
+                        },
+                        "required": ["df", "x_column", "y_column"],
                     },
                 },
             ]
-
 
             # Available functions dictionary for OpenAI interaction
             available_functions = {
                 "calculate_missing_values": calculate_missing_values,
                 "generate_correlation_heatmap": generate_correlation_heatmap,
-                "generate_box_plot": generate_box_plot
+                "generate_box_plot": generate_box_plot,
+                "generate_bar_plot": generate_bar_plot,
+                "generate_scatter_plot": generate_scatter_plot,
             }
             print("Initial prompt generated successfully!")
         except Exception as e:
@@ -388,6 +541,7 @@ def analyze_data(file_path):
                     insights = response_message["content"]
                     break
         except Exception as e:
+            print(response)
             print(f"Error processing OpenAI response: {e}")
             insights = "Error in processing OpenAI response"
 

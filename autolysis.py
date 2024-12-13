@@ -121,6 +121,24 @@ def calculate_missing_values(df: pd.DataFrame) -> dict:
         print(f"Error calculating missing values: {e}")
         return {"error": str(e)}  # Return the error as a dictionary
 
+# Function to calculate unique values in each column
+def calculate_unique_values(df: pd.DataFrame) -> dict:
+    """
+    Calculate the number of unique values for each column in the dataset.
+
+    Args:
+        df (pd.DataFrame): The dataset.
+
+    Returns:
+        dict: Dictionary of unique values count for each column.
+    """
+    try:
+        # Calculate the number of unique values in each column
+        return df.nunique().to_dict()
+    except Exception as e:
+        # Handle any errors encountered during the calculation
+        print(f"Error calculating unique values: {e}")
+        return {"error": str(e)}  # Return the error as a dictionary
 
 # Function to save plots to file
 def save_plot_to_file(plot_name: str, plt_obj: plt) -> str:
@@ -297,6 +315,7 @@ def generate_scatter_plot(df: pd.DataFrame, x_column: str, y_column: str, plot_n
         print(f"Error generating scatter plot: {e}")
         return "Plot could not be generated."
 
+
 # Analyze the dataset and interact with OpenAI
 def analyze_data(file_path):
     try:
@@ -461,6 +480,20 @@ def analyze_data(file_path):
                         "required": ["df", "x_column", "y_column"],
                     },
                 },
+                {
+                    "name": "calculate_unique_values",
+                    "description": "Calculate the number of unique values for each column in the dataset. This helps identify columns with repeated values, categorical data, or potential issues like duplicates.",
+                    "parameters": {
+                        "type": "object",
+                        "properties": {
+                            "df": {
+                                "type": "object",
+                                "description": "The DataFrame object containing the dataset."
+                            }
+                        },
+                        "required": ["df"]
+                    }
+                }
             ]
 
             # Available functions dictionary for OpenAI interaction
@@ -470,6 +503,7 @@ def analyze_data(file_path):
                 "generate_box_plot": generate_box_plot,
                 "generate_bar_plot": generate_bar_plot,
                 "generate_scatter_plot": generate_scatter_plot,
+                "calculate_unique_values":calculate_unique_values
             }
             print("Initial prompt generated successfully!")
         except Exception as e:
